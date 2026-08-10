@@ -68,7 +68,15 @@ body, html {
     letter-spacing: 1px;
 }
 
-/* Visor Simultáneo Dual */
+.indicator.recording {
+    animation: pulse-rec 1s infinite alternate;
+}
+
+@keyframes pulse-rec {
+    0% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+
 .camera-viewport {
     flex: 1;
     position: relative;
@@ -90,37 +98,38 @@ body, html {
     border: 2px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     background-color: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* Marco Vertical Simultáneo */
 .vertical-feed {
-    width: 130px;
+    width: 140px;
     height: 220px;
 }
 
 .vertical-feed canvas {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain; /* Mantiene proporciones reales sin deformar */
 }
 
-/* Marco Horizontal Simultáneo (Abajo) */
 .horizontal-feed {
-    width: 320px;
-    height: 180px;
+    width: 330px;
+    height: 185px;
 }
 
 .horizontal-feed canvas {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain; /* Mantiene proporciones reales sin deformar */
 }
 
 .feed-label {
     position: absolute;
     bottom: 6px;
     left: 8px;
-    font-size: 10px;
+    font-size: 9px;
     background: rgba(0, 0, 0, 0.6);
     padding: 2px 6px;
     border-radius: 4px;
@@ -177,6 +186,15 @@ body, html {
     background-color: white;
     border-radius: 50%;
     display: block;
+    transition: all 0.2s ease;
+}
+
+/* Estilo cuando cambia a modo Video (botón rojo de grabación) */
+.shutter-btn.recording-mode::after {
+    background-color: #ff3b30;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
 }
 
 .shutter-btn:active {
@@ -184,12 +202,16 @@ body, html {
 }
 
 .mode-selector {
-    width: 48px;
+    width: 60px;
     text-align: center;
 }
 
-.active-mode {
-    font-size: 12px;
-    font-weight: 700;
+.mode-btn {
+    background: none;
+    border: none;
     color: #ffcc00;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 6px;
 }
