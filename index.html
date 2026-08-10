@@ -1,57 +1,98 @@
-<!-- En el Header (junto al selector de calidad) -->
-<div class="app-header">
-    <button id="btn-quality" class="icon-btn">4K · 30</button>
-    <div id="rec-indicator" class="indicator">DUAL LIVE</div>
-    <!-- Nuevo Botón de Ajustes -->
-    <button id="btn-settings-toggle" class="icon-btn-gear">⚙️</button>
-</div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DualCam Pro iOS</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
 
-<!-- Panel de Ajustes Estilo iOS (Modal Oculto por defecto) -->
-<div id="settings-modal" class="settings-modal hidden">
-    <div class="settings-content">
-        <div class="settings-header">
-            <h3>Ajustes de Cámara</h3>
-            <button id="btn-close-settings">✕</button>
-        </div>
-        
-        <div class="settings-section">
-            <span class="section-title">COMPOSICIÓN Y ORIENTACIÓN</span>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <button id="btn-quality" class="icon-btn">4K · 30</button>
+            <div id="rec-indicator" class="indicator">DUAL LIVE</div>
+            <button id="btn-settings-toggle" class="icon-btn-gear">⚙️</button>
+        </header>
+
+        <!-- Viewport de Cámaras -->
+        <main class="camera-viewport">
+            <video id="camera-source" autoplay playsinline muted></video>
             
-            <div class="setting-item">
-                <span>Cuadrícula (Regla de Tercios)</span>
-                <label class="switch">
-                    <input type="checkbox" id="chk-grid" checked>
-                    <span class="slider round"></span>
-                </label>
+            <!-- Feed Vertical (9:16) -->
+            <div class="feed-container vertical-feed">
+                <canvas id="canvas-vertical"></canvas>
+                <span class="feed-label">9:16</span>
             </div>
 
-            <div class="setting-item">
-                <span>Espejo Cámara Frontal</span>
-                <label class="switch">
-                    <input type="checkbox" id="chk-mirror" checked>
-                    <span class="slider round"></span>
-                </label>
+            <!-- Feed Horizontal (16:9) -->
+            <div class="feed-container horizontal-feed">
+                <canvas id="canvas-horizontal"></canvas>
+                <span class="feed-label">16:9</span>
             </div>
-        </div>
+        </main>
 
-        <div class="settings-section">
-            <span class="section-title">VIDEO Y GRABACIÓN</span>
-            
-            <div class="setting-item">
-                <span>Audio Estéreo Avanzado</span>
-                <label class="switch">
-                    <input type="checkbox" id="chk-audio" checked>
-                    <span class="slider round"></span>
-                </label>
+        <!-- Footer / Controles -->
+        <footer class="app-footer">
+            <div id="gallery-trigger" class="gallery-preview">📥</div>
+            <button id="btn-shutter" class="shutter-btn"></button>
+            <div class="mode-selector">
+                <button id="btn-mode-toggle" class="mode-btn">VIDEO</button>
             </div>
+        </footer>
 
-            <div class="setting-item">
-                <span>Bloqueo de Exposición al Grabar</span>
-                <label class="switch">
-                    <input type="checkbox" id="chk-lock-exposure">
-                    <span class="slider round"></span>
-                </label>
+        <!-- Panel de Ajustes Estilo iOS (Modal) -->
+        <div id="settings-modal" class="settings-modal hidden">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>Ajustes de Cámara</h3>
+                    <button id="btn-close-settings">✕</button>
+                </div>
+                
+                <div class="settings-section">
+                    <span class="section-title">COMPOSICIÓN Y ORIENTACIÓN</span>
+                    
+                    <div class="setting-item">
+                        <span>Cuadrícula (Regla de Tercios)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="chk-grid" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <span>Espejo Cámara Frontal</span>
+                        <label class="switch">
+                            <input type="checkbox" id="chk-mirror" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <span class="section-title">VIDEO Y GRABACIÓN</span>
+                    
+                    <div class="setting-item">
+                        <span>Audio Estéreo Avanzado</span>
+                        <label class="switch">
+                            <input type="checkbox" id="chk-audio" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <span>Bloqueo de Exposición al Grabar</span>
+                        <label class="switch">
+                            <input type="checkbox" id="chk-lock-exposure">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
+
+    <script src="assets/js/camera.js"></script>
+</body>
+</html>
