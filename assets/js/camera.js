@@ -4,16 +4,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvasHorizontal = document.getElementById('canvas-horizontal');
     const btnSwitch = document.getElementById('btn-switch');
     const btnShutter = document.getElementById('btn-shutter');
+    const btnModeToggle = document.getElementById('btn-mode-toggle');
+    const recIndicator = document.getElementById('rec-indicator');
     const galleryPreview = document.getElementById('gallery-preview');
 
     const ctxVertical = canvasVertical.getContext('2d');
     const ctxHorizontal = canvasHorizontal.getContext('2d');
 
-    let currentFacingMode = 'environment'; // Inicia con cámara trasera, cambia a 'user' (frontal)
+    let currentFacingMode = 'environment';
     let currentStream = null;
-    let lastCapturedImage = null;
+    let currentMode = 'FOTO'; // 'FOTO' o 'VIDEO'
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecordingVideo = false;
 
-    // Función para iniciar o cambiar la cámara
     async function startCamera(facingMode) {
         if (currentStream) {
             currentStream.getTracks().forEach(track => track.stop());
@@ -26,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     width: { ideal: 1280 },
                     height: { ideal: 720 }
                 },
-                audio: false
+                audio: true // Habilitado para grabar video con audio
             };
 
             currentStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -39,74 +43,205 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`[Camera] Activa con facingMode: ${facingMode}`);
         } catch (error) {
             console.error('[Camera] Error al acceder a la cámara:', error);
-            alert('No se pudo acceder a la cámara. Verifica los permisos.');
+            alert('No se pudo acceder a la cámara o micrófono. Verifica los permisos.');
         }
     }
 
-    // Bucle para pintar simultáneamente en los canvas vertical y horizontal en tiempo real
+    // Renderizado con proporciones perfectas (Aspect Fit sin deformaciones)
+    function drawProportional(video, ctx, canvas) {
+        const vW = video.videoWidth;
+        const vH = video.videoHeight;
+        const cW = canvas.width;
+        const cH = canvas.height;
+
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, cW, cH);
+
+        if (!vW || !vH) return;
+
+        // Calcular escala manteniendo proporciones reales
+        const vRatio = vW / vH;
+        const cRatio = cW / cH;
+
+        let drawW = cW;
+        let drawH = cH;
+        let startX = 0;
+        let startY = 0;
+
+        if (vRatio > cRatio) {
+            drawH = cW / vRatio;
+            startY = (cH - drawH) / 2;
+        } else {
+            drawW = cH * vRatio;
+            startX = (cW - drawW) / 2;
+        }
+
+        ctx.drawImage(video, 0, 0, vW, vH, startX, startY, drawW, drawH);
+    }
+
     function renderSimultaneousFeeds() {
         if (videoSource.paused || videoSource.ended) return;
 
-        // Configurar resoluciones internas de los canvas
-        canvasVertical.width = 300;
-        canvasVertical.height = 500;
+        canvasVertical.width = 360;
+        canvasVertical.height = 640;
 
-        canvasHorizontal.width = 600;
-        canvasHorizontal.height = 340;
+        canvasHorizontal.width = 640;
+        canvasHorizontal.height = 360;
 
-        // 1. Dibujar en formato vertical (recortando el centro del video fuente)
-        const vWidth = videoSource.videoWidth;
-        const vHeight = videoSource.videoHeight;
-        
-        // Render Vertical
-        ctxVertical.drawImage(videoSource, (vWidth/4), 0, (vWidth/2), vHeight, 0, 0, canvasVertical.width, canvasVertical.height);
-
-        // 2. Dibujar en formato horizontal (al mismo tiempo)
-        ctxHorizontal.drawImage(videoSource, 0, 0, vWidth, vHeight, 0, 0, canvasHorizontal.width, canvasHorizontal.height);
+        // Pintar ambos visores manteniendo proporciones exactas
+        drawProportional(videoSource, ctxVertical, canvasVertical);
+        drawProportional(videoSource, ctxHorizontal, canvasHorizontal);
 
         requestAnimationFrame(renderSimultaneousFeeds);
     }
 
-    // Botón para rotar cámara (Trasera <-> Frontal) manteniendo ambos visores activos
+    // Alternar entre modo FOTO y modo VIDEO
+    btnModeToggle.addEventListener('click', () => {
+        if (isRecordingVideo) return; // No cambiar de modo si está grabando
+
+        if (currentMode === 'FOTO') {
+            currentMode = 'VIDEO';
+            btnModeToggle.textContent = 'VIDEO';
+            btnShutter.classList.add('recording-mode');
+            recIndicator.textContent = '● MODO VIDEO';
+        } else {
+            currentMode = 'FOTO';
+            btnModeToggle.textContent = 'FOTO';
+            btnShutter.classList.remove('recording-mode');
+            recIndicator.textContent = '● LIVE DUAL';
+        }
+        console.log(`[Mode] Cambiado a: ${currentMode}`);
+    });
+
+    // Cambiar cámara (Frontal / Trasera)
     btnSwitch.addEventListener('click', () => {
+        if (isRecordingVideo) return;
         currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
         startCamera(currentFacingMode);
     });
 
-    // Botón Disparador: Toma una foto combinada de ambos formatos y la manda a la galería
+    // Botón Disparador Principal (Acción depende del Modo actual)
     btnShutter.addEventListener('click', () => {
+        if (currentMode === 'FOTO') {
+            takePhotoAction();
+        } else {
+            toggleVideoRecordingAction();
+        }
+    });
+
+    // Acción de Tomar Foto y enviar a Galería
+    function takePhotoAction() {
         triggerFlashEffect();
 
-        // Crear un canvas temporal para fusionar ambas vistas en una sola imagen final descargable
         const finalCanvas = document.createElement('canvas');
-        finalCanvas.width = 600;
-        finalCanvas.height = 900;
+        finalCanvas.width = 640;
+        finalCanvas.height = 1040;
         const finalCtx = finalCanvas.getContext('2d');
 
-        // Fondo negro
         finalCtx.fillStyle = '#000000';
         finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
-        // Dibujar el cuadro vertical arriba y el horizontal abajo
-        finalCtx.drawImage(canvasVertical, 150, 40, 300, 500);
-        finalCtx.drawImage(canvasHorizontal, 0, 560, 600, 320);
+        // Fusionar diseño vertical arriba y horizontal abajo con proporciones limpias
+        finalCtx.drawImage(canvasVertical, (640 - 360)/2, 20, 360, 640);
+        finalCtx.drawImage(canvasHorizontal, 0, 680, 640, 360);
 
-        // Convertir a imagen descargable (simulando envío a galería)
-        lastCapturedImage = finalCanvas.toDataURL('image/jpeg', 0.9);
+        const dataURL = finalCanvas.toDataURL('image/jpeg', 0.95);
+        galleryPreview.innerHTML = `<img src="${dataURL}" alt="Foto">`;
 
-        // Actualizar miniatura de galería en pantalla
-        galleryPreview.innerHTML = `<img src="${lastCapturedImage}" alt="Captura">`;
+        // Descarga automática hacia la galería del dispositivo
+        downloadFile(dataURL, `DualCam_Foto_${Date.now()}.jpg`);
+        console.log('[Gallery] Foto enviada a galería.');
+    }
 
-        // Descarga automática al dispositivo / galería
+    // Acción de Grabar / Detener Video y enviar a Galería
+    function toggleVideoRecordingAction() {
+        if (!isRecordingVideo) {
+            // Iniciar Grabación
+            recordedChunks = [];
+            const combinedStream = captureCombinedCanvasStream();
+
+            try {
+                mediaRecorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm;codecs=vp9' });
+            } catch (e) {
+                try {
+                    mediaRecorder = new MediaRecorder(combinedStream, { mimeType: 'video/mp4' });
+                } catch (err) {
+                    mediaRecorder = new MediaRecorder(combinedStream);
+                }
+            }
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+                const videoUrl = URL.createObjectURL(blob);
+                
+                galleryPreview.innerHTML = `<video src="${videoUrl}" style="width:100%; height:100%; object-fit:cover;"></video>`;
+                
+                // Enviar video grabado a la galería del dispositivo
+                downloadFile(videoUrl, `DualCam_Video_${Date.now()}.mp4`);
+                console.log('[Gallery] Video enviado a galería.');
+            };
+
+            mediaRecorder.start();
+            isRecordingVideo = true;
+            btnShutter.style.borderColor = '#ff3b30';
+            recIndicator.classList.add('recording');
+            recIndicator.textContent = '🔴 GRABANDO...';
+            btnModeToggle.style.opacity = '0.5';
+
+        } else {
+            // Detener Grabación
+            mediaRecorder.stop();
+            isRecordingVideo = false;
+            btnShutter.style.borderColor = 'white';
+            recIndicator.classList.remove('recording');
+            recIndicator.textContent = '● MODO VIDEO';
+            btnModeToggle.style.opacity = '1';
+        }
+    }
+
+    // Capturar el flujo combinado de los canvas para grabar en video
+    function captureCombinedCanvasStream() {
+        const streamCanvas = document.createElement('canvas');
+        streamCanvas.width = 640;
+        streamCanvas.height = 1040;
+        const sCtx = streamCanvas.getContext('2d');
+
+        function drawStreamFrame() {
+            if (isRecordingVideo) {
+                sCtx.fillStyle = '#000000';
+                sCtx.fillRect(0, 0, streamCanvas.width, streamCanvas.height);
+                sCtx.drawImage(canvasVertical, (640 - 360)/2, 20, 360, 640);
+                sCtx.drawImage(canvasHorizontal, 0, 680, 640, 360);
+                requestAnimationFrame(drawStreamFrame);
+            }
+        }
+        drawStreamFrame();
+
+        const canvasStream = streamCanvas.captureStream(30); // 30 FPS
+        
+        // Agregar audio del micrófono si está disponible
+        const audioTracks = currentStream.getAudioTracks();
+        if (audioTracks.length > 0) {
+            canvasStream.addTrack(audioTracks[0]);
+        }
+
+        return canvasStream;
+    }
+
+    function downloadFile(url, filename) {
         const link = document.createElement('a');
-        link.href = lastCapturedImage;
-        link.download = `DualCam_${Date.now()}.jpg`;
+        link.href = url;
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
-        console.log('[Gallery] Foto dual guardada y enviada a galería.');
-    });
+    }
 
     function triggerFlashEffect() {
         const flash = document.createElement('div');
@@ -126,6 +261,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 50);
     }
 
-    // Inicializar app de cámara
     startCamera(currentFacingMode);
 });
