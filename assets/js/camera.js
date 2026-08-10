@@ -9,6 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const recIndicator = document.getElementById('rec-indicator');
     const galleryPreview = document.getElementById('gallery-trigger');
 
+    // Controles de Ajustes
+    const btnSettingsToggle = document.getElementById('btn-settings-toggle');
+    const settingsModal = document.getElementById('settings-modal');
+    const btnCloseSettings = document.getElementById('btn-close-settings');
+    const chkGrid = document.getElementById('chk-grid');
+    const chkMirror = document.getElementById('chk-mirror');
+
+    // Crear contenedores de la regla de tercios dinámicamente sobre los feeds
+    setupGridOverlays();
+
     const ctxVertical = canvasVertical.getContext('2d', { alpha: false });
     const ctxHorizontal = canvasHorizontal.getContext('2d', { alpha: false });
 
@@ -20,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let isRecordingVideo = false;
     let animationFrameId = null;
 
-    // Calidades idénticas a los selectores superiores de la app de Cámara de iPhone
     const videoQualities = [
         { label: '4K · 30', width: 3840, height: 2160, frameRate: 30 },
         { label: '4K · 60', width: 3840, height: 2160, frameRate: 60 },
@@ -28,6 +37,43 @@ document.addEventListener('DOMContentLoaded', () => {
         { label: '1080p · 60', width: 1920, height: 1080, frameRate: 60 }
     ];
     let currentQualityIndex = 0;
+
+    // --- GESTIÓN DE AJUSTES ---
+    btnSettingsToggle.addEventListener('click', () => {
+        if (isRecordingVideo) return;
+        settingsModal.classList.remove('hidden');
+    });
+
+    btnCloseSettings.addEventListener('click', () => {
+        settingsModal.classList.add('hidden');
+    });
+
+    // Control de Cuadrícula (Regla de Tercios)
+    chkGrid.addEventListener('change', (e) => {
+        const grids = document.querySelectorAll('.grid-overlay');
+        grids.forEach(g => {
+            if (e.target.checked) {
+                g.classList.remove('hidden');
+            } else {
+                g.classList.add('hidden');
+            }
+        });
+    });
+
+    function setupGridOverlays() {
+        const containers = document.querySelectorAll('.feed-container');
+        containers.forEach(container => {
+            if (!container.querySelector('.grid-overlay')) {
+                const grid = document.createElement('div');
+                grid.className = 'grid-overlay';
+                grid.innerHTML = `
+                    <div class="grid-line-v"></div><div class="grid-line-v"></div><div class="grid-line-v"></div>
+                    <div class="grid-line-h"></div><div class="grid-line-h"></div><div class="grid-line-h"></div>
+                `;
+                container.appendChild(grid);
+            }
+        });
+    }
 
     async function startCamera(facingMode, qualityConfig = videoQualities[currentQualityIndex]) {
         if (currentStream) {
@@ -42,16 +88,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     height: { ideal: qualityConfig.height },
                     frameRate: { ideal: qualityConfig.frameRate }
                 },
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true
-                }
+                audio: { echoCancellation: true, noiseSuppression: true }
             };
 
             currentStream = await navigator.mediaDevices.getUserMedia(constraints);
             videoSource.srcObject = currentStream;
-            
-            // Forzar reproducción para evitar el estado en negro en WebKit
             await videoSource.play().catch(() => {});
             
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
@@ -70,16 +111,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function drawPerfectProportions(video, ctx, canvas, targetAspect) {
+    function drawPerfectProportions(video, ctx, canvas, targetAspect, isMirrored) {
         const vW = video.videoWidth;
         const vH = video.videoHeight;
         const cW = canvas.width;
         const cH = canvas.height;
 
+        ctx.save();
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, cW, cH);
 
-        if (!vW || !vH) return;
+        if (!vW || !vH) {
+            ctx.restore();
+            return;
+        }
+
+        // Aplicar Modo Espejo matemáticamente si está activo y es cámara frontal
+        if (isMirrored && currentFacingMode === 'user') {
+            ctx.translate(cW, 0);
+            ctx.scale(-1, 1);
+        }
 
         const sourceAspect = vW / vH;
         let sWidth = vW;
@@ -96,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         ctx.drawImage(video, sX, sY, sWidth, sHeight, 0, 0, cW, cH);
+        ctx.restore();
     }
 
     function renderSimultaneousFeeds() {
@@ -106,8 +158,10 @@ document.addEventListener('DOMContentLoaded', () => {
             canvasHorizontal.width = 1920;
             canvasHorizontal.height = 1080;
 
-            drawPerfectProportions(videoSource, ctxVertical, canvasVertical, 9 / 16);
-            drawPerfectProportions(videoSource, ctxHorizontal, canvasHorizontal, 16 / 9);
+            const isMirrored = chkMirror.checked;
+
+            drawPerfectProportions(videoSource, ctxVertical, canvasVertical, 9 / 16, isMirrored);
+            drawPerfectProportions(videoSource, ctxHorizontal, canvasHorizontal, 16 / 9, isMirrored);
         }
         animationFrameId = requestAnimationFrame(renderSimultaneousFeeds);
     }
@@ -186,7 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 'image/jpeg', 0.95);
     }
 
-    // --- SOLUCIÓN VÍDEO EN NEGRO: MASTER STREAM ESTABLE ---
     function toggleUnifiedVideoRecording() {
         if (!isRecordingVideo) {
             recordedChunks = [];
@@ -210,13 +263,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             drawMasterFrame();
 
-            const masterStream = masterCanvas.captureStream(30); // 30 FPS estables para evitar saturación de codificación en iOS
+            const masterStream = masterCanvas.captureStream(30);
             const audioTracks = currentStream.getAudioTracks();
             if (audioTracks.length > 0) {
                 masterStream.addTrack(audioTracks[0]);
             }
 
-            // Detección estricta de códecs compatibles con iOS Safari / WebKit
             let options = { mimeType: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2' };
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
                 options = { mimeType: 'video/mp4' };
@@ -264,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => { galleryPreview.innerHTML = '📥'; }, 2000);
             };
 
-            masterMediaRecorder.start(200); // Guardar búfer en fragmentos de 200ms
+            masterMediaRecorder.start(200);
             isRecordingVideo = true;
 
             btnShutter.style.borderColor = '#ff3b30';
@@ -272,6 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
             recIndicator.textContent = 'GRABANDO';
             btnModeToggle.style.opacity = '0.3';
             btnQuality.style.opacity = '0.3';
+            btnSettingsToggle.style.opacity = '0.3';
 
         } else {
             if (masterMediaRecorder && masterMediaRecorder.state !== 'inactive') {
@@ -284,6 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
             recIndicator.textContent = 'VIDEO';
             btnModeToggle.style.opacity = '1';
             btnQuality.style.opacity = '1';
+            btnSettingsToggle.style.opacity = '1';
         }
     }
 
