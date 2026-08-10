@@ -9,28 +9,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const recIndicator = document.getElementById('rec-indicator');
     const galleryPreview = document.getElementById('gallery-trigger');
 
-    const ctxVertical = canvasVertical.getContext('2d');
-    const ctxHorizontal = canvasHorizontal.getContext('2d');
+    const ctxVertical = canvasVertical.getContext('2d', { alpha: false });
+    const ctxHorizontal = canvasHorizontal.getContext('2d', { alpha: false });
 
     let currentFacingMode = 'environment';
     let currentStream = null;
-    let currentMode = 'FOTO'; // 'FOTO' o 'VIDEO'
-    
-    // Variables para la grabación de video unificada y estable
+    let currentMode = 'FOTO';
     let masterMediaRecorder = null;
     let recordedChunks = [];
     let isRecordingVideo = false;
+    let animationFrameId = null;
 
-    // Perfiles de Calidad basados en especificaciones del iPhone 15 Pro Max
+    // Calidades idénticas a los selectores superiores de la app de Cámara de iPhone
     const videoQualities = [
-        { label: '4K / 30FPS', width: 3840, height: 2160, frameRate: 30 },
-        { label: '4K / 60FPS', width: 3840, height: 2160, frameRate: 60 },
-        { label: '1080p / 30FPS', width: 1920, height: 1080, frameRate: 30 },
-        { label: '1080p / 60FPS', width: 1920, height: 1080, frameRate: 60 }
+        { label: '4K · 30', width: 3840, height: 2160, frameRate: 30 },
+        { label: '4K · 60', width: 3840, height: 2160, frameRate: 60 },
+        { label: '1080p · 30', width: 1920, height: 1080, frameRate: 30 },
+        { label: '1080p · 60', width: 1920, height: 1080, frameRate: 60 }
     ];
     let currentQualityIndex = 0;
 
-    // Inicialización de la cámara con manejo de errores robusto
     async function startCamera(facingMode, qualityConfig = videoQualities[currentQualityIndex]) {
         if (currentStream) {
             currentStream.getTracks().forEach(track => track.stop());
@@ -53,24 +51,25 @@ document.addEventListener('DOMContentLoaded', () => {
             currentStream = await navigator.mediaDevices.getUserMedia(constraints);
             videoSource.srcObject = currentStream;
             
-            videoSource.onloadedmetadata = () => {
-                videoSource.play();
-                requestAnimationFrame(renderSimultaneousFeeds);
-            };
+            // Forzar reproducción para evitar el estado en negro en WebKit
+            await videoSource.play().catch(() => {});
+            
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            renderSimultaneousFeeds();
+
         } catch (error) {
-            console.warn('Fallback a resolución estándar por restricción de hardware', error);
             try {
                 currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 videoSource.srcObject = currentStream;
-                videoSource.play();
-                requestAnimationFrame(renderSimultaneousFeeds);
+                await videoSource.play().catch(() => {});
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                renderSimultaneousFeeds();
             } catch (err) {
-                alert('No se pudo acceder a la cámara. Por favor, verifica los permisos en tu navegador.');
+                alert('No se pudo acceder a la cámara. Verifica los permisos.');
             }
         }
     }
 
-    // Renderizado matemático con proporción fija (Crop Center sin deformaciones)
     function drawPerfectProportions(video, ctx, canvas, targetAspect) {
         const vW = video.videoWidth;
         const vH = video.videoHeight;
@@ -100,22 +99,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderSimultaneousFeeds() {
-        if (videoSource.paused || videoSource.ended) return;
+        if (!videoSource.paused && !videoSource.ended) {
+            canvasVertical.width = 1080;
+            canvasVertical.height = 1920;
 
-        // Definir resoluciones nativas limpias para cada canvas
-        canvasVertical.width = 1080;
-        canvasVertical.height = 1920; // 9:16
+            canvasHorizontal.width = 1920;
+            canvasHorizontal.height = 1080;
 
-        canvasHorizontal.width = 1920;
-        canvasHorizontal.height = 1080; // 16:9
-
-        drawPerfectProportions(videoSource, ctxVertical, canvasVertical, 9 / 16);
-        drawPerfectProportions(videoSource, ctxHorizontal, canvasHorizontal, 16 / 9);
-
-        requestAnimationFrame(renderSimultaneousFeeds);
+            drawPerfectProportions(videoSource, ctxVertical, canvasVertical, 9 / 16);
+            drawPerfectProportions(videoSource, ctxHorizontal, canvasHorizontal, 16 / 9);
+        }
+        animationFrameId = requestAnimationFrame(renderSimultaneousFeeds);
     }
 
-    // Selector de Calidad
     btnQuality.addEventListener('click', () => {
         if (isRecordingVideo) return;
         currentQualityIndex = (currentQualityIndex + 1) % videoQualities.length;
@@ -124,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
         startCamera(currentFacingMode, activeQ);
     });
 
-    // Alternar Modo FOTO / VIDEO
     btnModeToggle.addEventListener('click', () => {
         if (isRecordingVideo) return;
 
@@ -132,23 +127,21 @@ document.addEventListener('DOMContentLoaded', () => {
             currentMode = 'VIDEO';
             btnModeToggle.textContent = 'FOTO';
             btnShutter.classList.add('recording-mode');
-            recIndicator.textContent = '● MODO VIDEO';
+            recIndicator.textContent = 'VIDEO';
         } else {
             currentMode = 'FOTO';
             btnModeToggle.textContent = 'VIDEO';
             btnShutter.classList.remove('recording-mode');
-            recIndicator.textContent = '● DUAL LIVE';
+            recIndicator.textContent = 'DUAL LIVE';
         }
     });
 
-    // Cambiar Cámara Frontal / Trasera
     btnSwitch.addEventListener('click', () => {
         if (isRecordingVideo) return;
         currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
         startCamera(currentFacingMode, videoQualities[currentQualityIndex]);
     });
 
-    // Disparador Único (Foto o Video)
     btnShutter.addEventListener('click', () => {
         if (currentMode === 'FOTO') {
             takeTwoPhotosAndSendToGallery();
@@ -157,23 +150,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- 1. CAPTURA DE 2 FOTOS INDEPENDIENTES ---
     function takeTwoPhotosAndSendToGallery() {
         triggerFlashEffect();
         const timestamp = Date.now();
 
         canvasVertical.toBlob((blobV) => {
-            const fileV = new File([blobV], `DualCam_Vertical_${timestamp}.jpg`, { type: 'image/jpeg' });
+            const fileV = new File([blobV], `DualCam_V_${timestamp}.jpg`, { type: 'image/jpeg' });
 
             canvasHorizontal.toBlob(async (blobH) => {
-                const fileH = new File([blobH], `DualCam_Horizontal_${timestamp}.jpg`, { type: 'image/jpeg' });
+                const fileH = new File([blobH], `DualCam_H_${timestamp}.jpg`, { type: 'image/jpeg' });
 
                 if (navigator.canShare && navigator.canShare({ files: [fileV, fileH] })) {
                     try {
                         await navigator.share({
                             files: [fileV, fileH],
                             title: 'Capturas DualCam',
-                            text: 'Fotos vertical y horizontal independientes'
+                            text: 'Fotos vertical y horizontal'
                         });
                         galleryPreview.innerHTML = '✅';
                         setTimeout(() => { galleryPreview.innerHTML = '📥'; }, 2000);
@@ -183,10 +175,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                // Respaldo de descarga si no hay soporte de share nativo
-                triggerIOSDownload(URL.createObjectURL(blobV), `DualCam_Vertical_${timestamp}.jpg`);
+                triggerIOSDownload(URL.createObjectURL(blobV), `DualCam_V_${timestamp}.jpg`);
                 setTimeout(() => {
-                    triggerIOSDownload(URL.createObjectURL(blobH), `DualCam_Horizontal_${timestamp}.jpg`);
+                    triggerIOSDownload(URL.createObjectURL(blobH), `DualCam_H_${timestamp}.jpg`);
                 }, 400);
 
                 galleryPreview.innerHTML = '✅';
@@ -195,44 +186,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 'image/jpeg', 0.95);
     }
 
-    // --- 2. GRABACIÓN DE VIDEO UNIFICADA Y ESTABLE ---
+    // --- SOLUCIÓN VÍDEO EN NEGRO: MASTER STREAM ESTABLE ---
     function toggleUnifiedVideoRecording() {
         if (!isRecordingVideo) {
             recordedChunks = [];
 
-            // Creamos un canvas combinado maestro para capturar el stream de forma estable en móviles
             const masterCanvas = document.createElement('canvas');
             masterCanvas.width = 1920;
-            masterCanvas.height = 3000; // Contenedor vertical que almacena ambos feeds ordenados
-            const mCtx = masterCanvas.getContext('2d');
+            masterCanvas.height = 3000;
+            const mCtx = masterCanvas.getContext('2d', { alpha: false });
 
-            let recordingInterval;
+            let recInterval;
 
             function drawMasterFrame() {
                 if (isRecordingVideo) {
                     mCtx.fillStyle = '#000000';
                     mCtx.fillRect(0, 0, masterCanvas.width, masterCanvas.height);
-                    
-                    // Dibujar Feed Vertical arriba
                     mCtx.drawImage(canvasVertical, (1920 - 1080) / 2, 0, 1080, 1920);
-                    // Dibujar Feed Horizontal abajo
                     mCtx.drawImage(canvasHorizontal, 0, 1940, 1920, 1080);
-                    
-                    recordingInterval = requestAnimationFrame(drawMasterFrame);
+                    recInterval = requestAnimationFrame(drawMasterFrame);
                 }
             }
 
             drawMasterFrame();
 
-            const masterStream = masterCanvas.captureStream(60); // 60 FPS estables
+            const masterStream = masterCanvas.captureStream(30); // 30 FPS estables para evitar saturación de codificación en iOS
             const audioTracks = currentStream.getAudioTracks();
             if (audioTracks.length > 0) {
                 masterStream.addTrack(audioTracks[0]);
             }
 
-            let options = { mimeType: 'video/mp4' };
-            if (!MediaRecorder.isTypeSupported('video/mp4')) {
-                options = { mimeType: 'video/webm;codecs=vp9' };
+            // Detección estricta de códecs compatibles con iOS Safari / WebKit
+            let options = { mimeType: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2' };
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                options = { mimeType: 'video/mp4' };
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm;codecs=vp9,opus' };
+                }
             }
 
             try {
@@ -250,16 +240,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const timestamp = Date.now();
 
             masterMediaRecorder.onstop = async () => {
-                cancelAnimationFrame(recordingInterval);
+                cancelAnimationFrame(recInterval);
                 const blob = new Blob(recordedChunks, { type: masterMediaRecorder.mimeType || 'video/mp4' });
-                const file = new File([blob], `DualCam_Video_Master_${timestamp}.mp4`, { type: blob.type });
+                const file = new File([blob], `DualCam_Video_${timestamp}.mp4`, { type: blob.type });
 
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
                         await navigator.share({
                             files: [file],
-                            title: 'Video DualCam Master',
-                            text: 'Grabación dual unificada'
+                            title: 'Video DualCam',
+                            text: 'Grabación dual'
                         });
                         galleryPreview.innerHTML = '✅';
                         setTimeout(() => { galleryPreview.innerHTML = '📥'; }, 2000);
@@ -274,12 +264,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => { galleryPreview.innerHTML = '📥'; }, 2000);
             };
 
-            masterMediaRecorder.start(250); // Recolectar datos en chunks cada 250ms para evitar pérdida de búfer
+            masterMediaRecorder.start(200); // Guardar búfer en fragmentos de 200ms
             isRecordingVideo = true;
 
             btnShutter.style.borderColor = '#ff3b30';
             recIndicator.classList.add('recording');
-            recIndicator.textContent = '🔴 GRABANDO';
+            recIndicator.textContent = 'GRABANDO';
             btnModeToggle.style.opacity = '0.3';
             btnQuality.style.opacity = '0.3';
 
@@ -291,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             btnShutter.style.borderColor = 'white';
             recIndicator.classList.remove('recording');
-            recIndicator.textContent = '● MODO VIDEO';
+            recIndicator.textContent = 'VIDEO';
             btnModeToggle.style.opacity = '1';
             btnQuality.style.opacity = '1';
         }
