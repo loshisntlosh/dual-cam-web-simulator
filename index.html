@@ -11,13 +11,14 @@
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <button id="btn-quality" class="icon-btn">4K · 30</button>
+            <button id="btn-quality" class="icon-btn">HD · 30</button>
             <div id="rec-indicator" class="indicator">DUAL LIVE</div>
             <button id="btn-settings-toggle" class="icon-btn-gear">⚙️</button>
         </header>
 
         <!-- Viewport de Cámaras -->
         <main class="camera-viewport">
+            <!-- IMPORTANTE: El video debe estar presente, activo y habilitado para WebKit -->
             <video id="camera-source" autoplay playsinline muted></video>
             
             <!-- Feed Vertical (9:16) -->
@@ -42,7 +43,7 @@
             </div>
         </footer>
 
-        <!-- Panel de Ajustes Estilo iOS (Modal) -->
+        <!-- Panel de Ajustes (Modal) -->
         <div id="settings-modal" class="settings-modal hidden">
             <div class="settings-content">
                 <div class="settings-header">
@@ -77,14 +78,6 @@
                         <span>Audio Estéreo Avanzado</span>
                         <label class="switch">
                             <input type="checkbox" id="chk-audio" checked>
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-
-                    <div class="setting-item">
-                        <span>Bloqueo de Exposición al Grabar</span>
-                        <label class="switch">
-                            <input type="checkbox" id="chk-lock-exposure">
                             <span class="slider round"></span>
                         </label>
                     </div>
