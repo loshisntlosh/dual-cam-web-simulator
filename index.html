@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DualCam Simulator</title>
+    
+    <!-- Configuración para modo PWA (Pantalla completa en iOS) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DualCam">
+
+    <!-- Hoja de estilos -->
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+    <!-- Contenedor simulador de iPhone (Centrado en PC, pantalla completa en móvil) -->
+    <div class="app-container">
+        
+        <!-- Header / Controles Superiores -->
+        <header class="app-header">
+            <button id="btn-quality" class="icon-btn">HD / 1080p</button>
+            <div class="indicator">● REC DUAL</div>
+            <button id="btn-switch" class="icon-btn">🔄</button>
+        </header>
+
+        <!-- Visor de Cámaras (Dual View / PiP) -->
+        <main class="camera-viewport">
+            <!-- Cámara Principal (Trasera simulada) -->
+            <div class="camera-feed primary-feed">
+                <video id="video-primary" autoplay playsinline muted></video>
+                <span class="feed-label">Principal</span>
+            </div>
+
+            <!-- Cámara Secundaria (Frontal / PiP flotante) -->
+            <div class="camera-feed secondary-feed" id="pip-window">
+                <video id="video-secondary" autoplay playsinline muted></video>
+                <span class="feed-label">Selfie</span>
+            </div>
+        </main>
+
+        <!-- Controles Inferiores / Barra de Disparo -->
+        <footer class="app-footer">
+            <div class="gallery-preview" id="gallery-trigger">
+                <!-- Miniatura de última foto guardada -->
+                <div id="thumb-placeholder">📁</div>
+            </div>
+
+            <div class="shutter-controls">
+                <button id="btn-shutter" class="shutter-btn"></button>
+            </div>
+
+            <div class="mode-selector">
+                <span class="active-mode">FOTO</span>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Scripts de la Aplicación -->
+    <script src="assets/js/camera.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>
