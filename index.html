@@ -17,7 +17,6 @@
     <div class="app-container">
         
         <header class="app-header">
-            <!-- Botón dinámico de calidad/resolución -->
             <button id="btn-quality" class="icon-btn">4K / 30FPS</button>
             <div class="indicator" id="rec-indicator">● DUAL LIVE</div>
             <button id="btn-switch" class="icon-btn">🔄</button>
@@ -27,13 +26,13 @@
         <main class="camera-viewport">
             <video id="camera-source" autoplay playsinline muted style="display: none;"></video>
 
-            <!-- Marco Vertical -->
+            <!-- Marco Vertical (9:16) -->
             <div class="feed-container vertical-feed">
                 <canvas id="canvas-vertical"></canvas>
                 <span class="feed-label">9:16 Vertical</span>
             </div>
 
-            <!-- Marco Horizontal -->
+            <!-- Marco Horizontal (16:9) -->
             <div class="feed-container horizontal-feed">
                 <canvas id="canvas-horizontal"></canvas>
                 <span class="feed-label">16:9 Horizontal</span>
@@ -41,7 +40,7 @@
         </main>
 
         <footer class="app-footer">
-            <div class="gallery-preview" id="gallery-trigger" title="Último archivo guardado">
+            <div class="gallery-preview" id="gallery-trigger" title="Estado de guardado">
                 <span id="gallery-icon">📥</span>
             </div>
 
