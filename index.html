@@ -1,61 +1,57 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DualCam Pro - iPhone 15 Pro Max</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="DualCam Pro">
+<!-- En el Header (junto al selector de calidad) -->
+<div class="app-header">
+    <button id="btn-quality" class="icon-btn">4K · 30</button>
+    <div id="rec-indicator" class="indicator">DUAL LIVE</div>
+    <!-- Nuevo Botón de Ajustes -->
+    <button id="btn-settings-toggle" class="icon-btn-gear">⚙️</button>
+</div>
 
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body>
-
-    <div class="app-container">
+<!-- Panel de Ajustes Estilo iOS (Modal Oculto por defecto) -->
+<div id="settings-modal" class="settings-modal hidden">
+    <div class="settings-content">
+        <div class="settings-header">
+            <h3>Ajustes de Cámara</h3>
+            <button id="btn-close-settings">✕</button>
+        </div>
         
-        <header class="app-header">
-            <button id="btn-quality" class="icon-btn">4K / 30FPS</button>
-            <div class="indicator" id="rec-indicator">● DUAL LIVE</div>
-            <button id="btn-switch" class="icon-btn">🔄</button>
-        </header>
-
-        <!-- Visor Simultáneo con proporciones exactas -->
-        <main class="camera-viewport">
-            <video id="camera-source" autoplay playsinline muted style="display: none;"></video>
-
-            <!-- Marco Vertical (9:16) -->
-            <div class="feed-container vertical-feed">
-                <canvas id="canvas-vertical"></canvas>
-                <span class="feed-label">9:16 Vertical</span>
+        <div class="settings-section">
+            <span class="section-title">COMPOSICIÓN Y ORIENTACIÓN</span>
+            
+            <div class="setting-item">
+                <span>Cuadrícula (Regla de Tercios)</span>
+                <label class="switch">
+                    <input type="checkbox" id="chk-grid" checked>
+                    <span class="slider round"></span>
+                </label>
             </div>
 
-            <!-- Marco Horizontal (16:9) -->
-            <div class="feed-container horizontal-feed">
-                <canvas id="canvas-horizontal"></canvas>
-                <span class="feed-label">16:9 Horizontal</span>
+            <div class="setting-item">
+                <span>Espejo Cámara Frontal</span>
+                <label class="switch">
+                    <input type="checkbox" id="chk-mirror" checked>
+                    <span class="slider round"></span>
+                </label>
             </div>
-        </main>
+        </div>
 
-        <footer class="app-footer">
-            <div class="gallery-preview" id="gallery-trigger" title="Estado de guardado">
-                <span id="gallery-icon">📥</span>
+        <div class="settings-section">
+            <span class="section-title">VIDEO Y GRABACIÓN</span>
+            
+            <div class="setting-item">
+                <span>Audio Estéreo Avanzado</span>
+                <label class="switch">
+                    <input type="checkbox" id="chk-audio" checked>
+                    <span class="slider round"></span>
+                </label>
             </div>
 
-            <div class="shutter-controls">
-                <button id="btn-shutter" class="shutter-btn"></button>
+            <div class="setting-item">
+                <span>Bloqueo de Exposición al Grabar</span>
+                <label class="switch">
+                    <input type="checkbox" id="chk-lock-exposure">
+                    <span class="slider round"></span>
+                </label>
             </div>
-
-            <div class="mode-selector">
-                <button id="btn-mode-toggle" class="mode-btn">FOTO</button>
-            </div>
-        </footer>
-
+        </div>
     </div>
-
-    <script src="assets/js/camera.js"></script>
-    <script src="assets/js/app.js"></script>
-</body>
-</html>
+</div>
