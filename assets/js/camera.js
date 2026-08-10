@@ -2,27 +2,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const videoSource = document.getElementById('camera-source');
     const canvasVertical = document.getElementById('canvas-vertical');
     const canvasHorizontal = document.getElementById('canvas-horizontal');
-    const btnSwitch = document.getElementById('btn-switch');
     const btnShutter = document.getElementById('btn-shutter');
     const btnModeToggle = document.getElementById('btn-mode-toggle');
     const btnQuality = document.getElementById('btn-quality');
     const recIndicator = document.getElementById('rec-indicator');
     const galleryPreview = document.getElementById('gallery-trigger');
 
-    // Controles de Ajustes
     const btnSettingsToggle = document.getElementById('btn-settings-toggle');
     const settingsModal = document.getElementById('settings-modal');
     const btnCloseSettings = document.getElementById('btn-close-settings');
     const chkGrid = document.getElementById('chk-grid');
     const chkMirror = document.getElementById('chk-mirror');
 
-    // Crear contenedores de la regla de tercios dinámicamente sobre los feeds
     setupGridOverlays();
 
     const ctxVertical = canvasVertical.getContext('2d', { alpha: false });
     const ctxHorizontal = canvasHorizontal.getContext('2d', { alpha: false });
 
-    let currentFacingMode = 'environment';
+    let currentFacingMode = 'user';
     let currentStream = null;
     let currentMode = 'FOTO';
     let masterMediaRecorder = null;
@@ -30,15 +27,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let isRecordingVideo = false;
     let animationFrameId = null;
 
+    // Perfiles seguros compatibles con navegadores móviles
     const videoQualities = [
-        { label: '4K · 30', width: 3840, height: 2160, frameRate: 30 },
-        { label: '4K · 60', width: 3840, height: 2160, frameRate: 60 },
-        { label: '1080p · 30', width: 1920, height: 1080, frameRate: 30 },
-        { label: '1080p · 60', width: 1920, height: 1080, frameRate: 60 }
+        { label: 'HD · 30', width: 1280, height: 720, frameRate: 30 },
+        { label: 'FHD · 30', width: 1920, height: 1080, frameRate: 30 }
     ];
     let currentQualityIndex = 0;
 
-    // --- GESTIÓN DE AJUSTES ---
     btnSettingsToggle.addEventListener('click', () => {
         if (isRecordingVideo) return;
         settingsModal.classList.remove('hidden');
@@ -48,21 +43,14 @@ document.addEventListener('DOMContentLoaded', () => {
         settingsModal.classList.add('hidden');
     });
 
-    // Control de Cuadrícula (Regla de Tercios)
     chkGrid.addEventListener('change', (e) => {
-        const grids = document.querySelectorAll('.grid-overlay');
-        grids.forEach(g => {
-            if (e.target.checked) {
-                g.classList.remove('hidden');
-            } else {
-                g.classList.add('hidden');
-            }
+        document.querySelectorAll('.grid-overlay').forEach(g => {
+            g.classList.toggle('hidden', !e.target.checked);
         });
     });
 
     function setupGridOverlays() {
-        const containers = document.querySelectorAll('.feed-container');
-        containers.forEach(container => {
+        document.querySelectorAll('.feed-container').forEach(container => {
             if (!container.querySelector('.grid-overlay')) {
                 const grid = document.createElement('div');
                 grid.className = 'grid-overlay';
@@ -93,20 +81,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentStream = await navigator.mediaDevices.getUserMedia(constraints);
             videoSource.srcObject = currentStream;
-            await videoSource.play().catch(() => {});
+            
+            await videoSource.play().catch(e => console.warn("Error en play automático:", e));
             
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             renderSimultaneousFeeds();
 
         } catch (error) {
+            console.warn('Fallback a restricciones genéricas de cámara', error);
             try {
                 currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 videoSource.srcObject = currentStream;
-                await videoSource.play().catch(() => {});
+                await videoSource.play();
                 if (animationFrameId) cancelAnimationFrame(animationFrameId);
                 renderSimultaneousFeeds();
             } catch (err) {
-                alert('No se pudo acceder a la cámara. Verifica los permisos.');
+                alert('No se pudo acceder a la cámara. Revisa los permisos de tu navegador.');
             }
         }
     }
@@ -126,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Aplicar Modo Espejo matemáticamente si está activo y es cámara frontal
         if (isMirrored && currentFacingMode === 'user') {
             ctx.translate(cW, 0);
             ctx.scale(-1, 1);
@@ -151,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderSimultaneousFeeds() {
-        if (!videoSource.paused && !videoSource.ended) {
+        if (!videoSource.paused && !videoSource.ended && videoSource.videoWidth > 0) {
             canvasVertical.width = 1080;
             canvasVertical.height = 1920;
 
@@ -188,12 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
             btnShutter.classList.remove('recording-mode');
             recIndicator.textContent = 'DUAL LIVE';
         }
-    });
-
-    btnSwitch.addEventListener('click', () => {
-        if (isRecordingVideo) return;
-        currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-        startCamera(currentFacingMode, videoQualities[currentQualityIndex]);
     });
 
     btnShutter.addEventListener('click', () => {
@@ -269,12 +252,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 masterStream.addTrack(audioTracks[0]);
             }
 
-            let options = { mimeType: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2' };
+            let options = { mimeType: 'video/mp4' };
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                options = { mimeType: 'video/mp4' };
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    options = { mimeType: 'video/webm;codecs=vp9,opus' };
-                }
+                options = { mimeType: 'video/webm' };
             }
 
             try {
