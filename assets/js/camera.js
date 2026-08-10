@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let isRecordingVideo = false;
     let animationFrameId = null;
 
-    // Perfiles seguros compatibles con navegadores móviles
     const videoQualities = [
         { label: 'HD · 30', width: 1280, height: 720, frameRate: 30 },
         { label: 'FHD · 30', width: 1920, height: 1080, frameRate: 30 }
@@ -88,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderSimultaneousFeeds();
 
         } catch (error) {
-            console.warn('Fallback a restricciones genéricas de cámara', error);
+            console.warn('Fallback a restricciones genéricas', error);
             try {
                 currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 videoSource.srcObject = currentStream;
@@ -96,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (animationFrameId) cancelAnimationFrame(animationFrameId);
                 renderSimultaneousFeeds();
             } catch (err) {
-                alert('No se pudo acceder a la cámara. Revisa los permisos de tu navegador.');
+                alert('No se pudo acceder a la cámara. Revisa los permisos.');
             }
         }
     }
@@ -223,13 +222,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 'image/jpeg', 0.95);
     }
 
+    // SOLUCIÓN CLAVE PARA GRABACIÓN EN VIDEO (Evita pantalla en negro)
     function toggleUnifiedVideoRecording() {
         if (!isRecordingVideo) {
             recordedChunks = [];
 
+            // Creamos un canvas maestro optimizado para la composición completa
             const masterCanvas = document.createElement('canvas');
-            masterCanvas.width = 1920;
-            masterCanvas.height = 3000;
+            masterCanvas.width = 1080;
+            masterCanvas.height = 1920 + 608; // Espacio vertical (1920) + espacio horizontal escalado (608 px de alto)
             const mCtx = masterCanvas.getContext('2d', { alpha: false });
 
             let recInterval;
@@ -238,23 +239,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isRecordingVideo) {
                     mCtx.fillStyle = '#000000';
                     mCtx.fillRect(0, 0, masterCanvas.width, masterCanvas.height);
-                    mCtx.drawImage(canvasVertical, (1920 - 1080) / 2, 0, 1080, 1920);
-                    mCtx.drawImage(canvasHorizontal, 0, 1940, 1920, 1080);
+                    
+                    // Dibuja feed vertical arriba
+                    mCtx.drawImage(canvasVertical, 0, 0, 1080, 1920);
+                    
+                    // Dibuja feed horizontal abajo adaptado al ancho de 1080
+                    mCtx.drawImage(canvasHorizontal, 0, 1940, 1080, 608);
+
+                    // Forzamos el loop de renderizado continuo para el MediaRecorder
                     recInterval = requestAnimationFrame(drawMasterFrame);
                 }
             }
 
             drawMasterFrame();
 
+            // Obtenemos el stream del canvas maestro a 30 FPS estables
             const masterStream = masterCanvas.captureStream(30);
             const audioTracks = currentStream.getAudioTracks();
             if (audioTracks.length > 0) {
                 masterStream.addTrack(audioTracks[0]);
             }
 
+            // Selección inteligente del cómpatible de video
             let options = { mimeType: 'video/mp4' };
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                options = { mimeType: 'video/webm' };
+                options = { mimeType: 'video/webm;codecs=vp9,opus' };
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm' };
+                }
             }
 
             try {
@@ -296,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => { galleryPreview.innerHTML = '📥'; }, 2000);
             };
 
-            masterMediaRecorder.start(200);
+            masterMediaRecorder.start(250);
             isRecordingVideo = true;
 
             btnShutter.style.borderColor = '#ff3b30';
