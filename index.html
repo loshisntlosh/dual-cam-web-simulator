@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DualCam Simulator</title>
+    <title>DualCam Pro - iPhone 15 Pro Max</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="DualCam">
+    <meta name="apple-mobile-web-app-title" content="DualCam Pro">
 
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
@@ -17,29 +17,32 @@
     <div class="app-container">
         
         <header class="app-header">
-            <button id="btn-quality" class="icon-btn">HD / 1080p</button>
-            <div class="indicator" id="rec-indicator">● LIVE DUAL</div>
+            <!-- Botón dinámico de calidad/resolución -->
+            <button id="btn-quality" class="icon-btn">4K / 30FPS</button>
+            <div class="indicator" id="rec-indicator">● DUAL LIVE</div>
             <button id="btn-switch" class="icon-btn">🔄</button>
         </header>
 
-        <!-- Visor Simultáneo: Vertical y Horizontal con proporciones perfectas -->
+        <!-- Visor Simultáneo con proporciones exactas -->
         <main class="camera-viewport">
             <video id="camera-source" autoplay playsinline muted style="display: none;"></video>
 
+            <!-- Marco Vertical -->
             <div class="feed-container vertical-feed">
                 <canvas id="canvas-vertical"></canvas>
-                <span class="feed-label">Vertical (Proporcional)</span>
+                <span class="feed-label">9:16 Vertical</span>
             </div>
 
+            <!-- Marco Horizontal -->
             <div class="feed-container horizontal-feed">
                 <canvas id="canvas-horizontal"></canvas>
-                <span class="feed-label">Horizontal (Proporcional)</span>
+                <span class="feed-label">16:9 Horizontal</span>
             </div>
         </main>
 
         <footer class="app-footer">
-            <div class="gallery-preview" id="gallery-trigger">
-                <span id="gallery-icon">📁</span>
+            <div class="gallery-preview" id="gallery-trigger" title="Último archivo guardado">
+                <span id="gallery-icon">📥</span>
             </div>
 
             <div class="shutter-controls">
