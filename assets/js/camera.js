@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvasHorizontal = document.getElementById('canvas-horizontal');
     const btnShutter = document.getElementById('btn-shutter');
     const btnModeToggle = document.getElementById('btn-mode-toggle');
-    const btnQuality = document.getElementById('btn-quality');
     const recIndicator = document.getElementById('rec-indicator');
     const galleryPreview = document.getElementById('gallery-trigger');
 
@@ -27,11 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let isRecordingVideo = false;
     let animationFrameId = null;
 
-    const videoQualities = [
-        { label: 'HD · 30', width: 1280, height: 720, frameRate: 30 },
-        { label: 'FHD · 30', width: 1920, height: 1080, frameRate: 30 }
-    ];
-    let currentQualityIndex = 0;
+    // Calidad máxima fija por defecto (FHD 1080p a 30fps) sin preguntar nada al usuario
+    const maxQualityConfig = { width: 1920, height: 1080, frameRate: 30 };
 
     btnSettingsToggle.addEventListener('click', () => {
         if (isRecordingVideo) return;
@@ -62,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    async function startCamera(facingMode, qualityConfig = videoQualities[currentQualityIndex]) {
+    async function startCamera(facingMode) {
         if (currentStream) {
             currentStream.getTracks().forEach(track => track.stop());
         }
@@ -71,9 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const constraints = {
                 video: { 
                     facingMode: facingMode,
-                    width: { ideal: qualityConfig.width },
-                    height: { ideal: qualityConfig.height },
-                    frameRate: { ideal: qualityConfig.frameRate }
+                    width: { ideal: maxQualityConfig.width },
+                    height: { ideal: maxQualityConfig.height },
+                    frameRate: { ideal: maxQualityConfig.frameRate }
                 },
                 audio: { echoCancellation: true, noiseSuppression: true }
             };
@@ -154,14 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
         animationFrameId = requestAnimationFrame(renderSimultaneousFeeds);
     }
 
-    btnQuality.addEventListener('click', () => {
-        if (isRecordingVideo) return;
-        currentQualityIndex = (currentQualityIndex + 1) % videoQualities.length;
-        const activeQ = videoQualities[currentQualityIndex];
-        btnQuality.textContent = activeQ.label;
-        startCamera(currentFacingMode, activeQ);
-    });
-
     btnModeToggle.addEventListener('click', () => {
         if (isRecordingVideo) return;
 
@@ -222,15 +210,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 'image/jpeg', 0.95);
     }
 
-    // SOLUCIÓN CLAVE PARA GRABACIÓN EN VIDEO (Evita pantalla en negro)
+    // SOLUCIÓN DEFINITIVA PARA LA GRABACIÓN DE VIDEO (Evita pantalla negra y archivo de solo audio)
     function toggleUnifiedVideoRecording() {
         if (!isRecordingVideo) {
             recordedChunks = [];
 
-            // Creamos un canvas maestro optimizado para la composición completa
             const masterCanvas = document.createElement('canvas');
             masterCanvas.width = 1080;
-            masterCanvas.height = 1920 + 608; // Espacio vertical (1920) + espacio horizontal escalado (608 px de alto)
+            masterCanvas.height = 1920 + 608; 
             const mCtx = masterCanvas.getContext('2d', { alpha: false });
 
             let recInterval;
@@ -240,28 +227,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     mCtx.fillStyle = '#000000';
                     mCtx.fillRect(0, 0, masterCanvas.width, masterCanvas.height);
                     
-                    // Dibuja feed vertical arriba
                     mCtx.drawImage(canvasVertical, 0, 0, 1080, 1920);
-                    
-                    // Dibuja feed horizontal abajo adaptado al ancho de 1080
                     mCtx.drawImage(canvasHorizontal, 0, 1940, 1080, 608);
 
-                    // Forzamos el loop de renderizado continuo para el MediaRecorder
                     recInterval = requestAnimationFrame(drawMasterFrame);
                 }
             }
 
             drawMasterFrame();
 
-            // Obtenemos el stream del canvas maestro a 30 FPS estables
             const masterStream = masterCanvas.captureStream(30);
             const audioTracks = currentStream.getAudioTracks();
             if (audioTracks.length > 0) {
                 masterStream.addTrack(audioTracks[0]);
             }
 
-            // Selección inteligente del cómpatible de video
-            let options = { mimeType: 'video/mp4' };
+            let options = { mimeType: 'video/mp4;codecs=h264,opus' };
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
                 options = { mimeType: 'video/webm;codecs=vp9,opus' };
                 if (!MediaRecorder.isTypeSupported(options.mimeType)) {
@@ -315,7 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
             recIndicator.classList.add('recording');
             recIndicator.textContent = 'GRABANDO';
             btnModeToggle.style.opacity = '0.3';
-            btnQuality.style.opacity = '0.3';
             btnSettingsToggle.style.opacity = '0.3';
 
         } else {
@@ -328,7 +308,6 @@ document.addEventListener('DOMContentLoaded', () => {
             recIndicator.classList.remove('recording');
             recIndicator.textContent = 'VIDEO';
             btnModeToggle.style.opacity = '1';
-            btnQuality.style.opacity = '1';
             btnSettingsToggle.style.opacity = '1';
         }
     }
@@ -361,5 +340,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 40);
     }
 
-    startCamera(currentFacingMode, videoQualities[currentQualityIndex]);
+    startCamera(currentFacingMode);
 });
