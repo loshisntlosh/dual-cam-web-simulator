@@ -1,4 +1,3 @@
-/* Reseteo general y bloqueo de rebotes/zoom en móviles */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -17,12 +16,11 @@ body, html {
     position: fixed;
 }
 
-/* Contenedor principal estilo iPhone */
 .app-container {
     width: 100%;
     height: 100%;
-    max-width: 430px; /* Ancho simulado de iPhone Pro Max en PC */
-    max-height: 932px; /* Alto simulado de iPhone Pro Max en PC */
+    max-width: 430px;
+    max-height: 932px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -41,7 +39,6 @@ body, html {
     }
 }
 
-/* Header / Controles Superiores */
 .app-header {
     height: 60px;
     display: flex;
@@ -49,7 +46,7 @@ body, html {
     align-items: center;
     padding: 0 20px;
     z-index: 10;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+    background: rgba(0,0,0,0.8);
 }
 
 .icon-btn {
@@ -71,71 +68,73 @@ body, html {
     letter-spacing: 1px;
 }
 
-/* Visor de Cámaras (Dual View) */
+/* Visor Simultáneo Dual */
 .camera-viewport {
     flex: 1;
     position: relative;
     width: 100%;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
     background-color: #1c1c1e;
+    overflow: hidden;
 }
 
-/* Cámara Principal (Pantalla Completa de fondo) */
-.primary-feed {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-
-.primary-feed video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Cámara Secundaria (Ventana flotante PiP estilo BeReal/DoubleTake) */
-.secondary-feed {
-    width: 110px;
-    height: 150px;
-    position: absolute;
-    top: 20px;
-    right: 20px;
+.feed-container {
+    position: relative;
     border-radius: 16px;
     overflow: hidden;
-    border: 2px solid rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     background-color: #000;
 }
 
-.secondary-feed video {
+/* Marco Vertical Simultáneo */
+.vertical-feed {
+    width: 130px;
+    height: 220px;
+}
+
+.vertical-feed canvas {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-/* Etiquetas dentro del visor */
+/* Marco Horizontal Simultáneo (Abajo) */
+.horizontal-feed {
+    width: 320px;
+    height: 180px;
+}
+
+.horizontal-feed canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 .feed-label {
     position: absolute;
     bottom: 6px;
     left: 8px;
     font-size: 10px;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     padding: 2px 6px;
     border-radius: 4px;
     color: #ddd;
 }
 
-/* Controles Inferiores / Disparador */
 .app-footer {
-    height: 130px;
+    height: 120px;
     display: flex;
     justify-content: space-around;
     align-items: center;
     padding: 0 20px;
     z-index: 10;
-    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    background: rgba(0,0,0,0.9);
 }
 
 .gallery-preview {
@@ -149,6 +148,12 @@ body, html {
     align-items: center;
     cursor: pointer;
     overflow: hidden;
+}
+
+.gallery-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .shutter-btn {
