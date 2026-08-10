@@ -18,25 +18,22 @@
         
         <header class="app-header">
             <button id="btn-quality" class="icon-btn">HD / 1080p</button>
-            <div class="indicator">● LIVE DUAL</div>
+            <div class="indicator" id="rec-indicator">● LIVE DUAL</div>
             <button id="btn-switch" class="icon-btn">🔄</button>
         </header>
 
-        <!-- Visor Simultáneo: Vertical y Horizontal al mismo tiempo -->
+        <!-- Visor Simultáneo: Vertical y Horizontal con proporciones perfectas -->
         <main class="camera-viewport">
-            <!-- Video fuente oculto que procesa la cámara real -->
             <video id="camera-source" autoplay playsinline muted style="display: none;"></video>
 
-            <!-- Vista 1: Marco Vertical -->
             <div class="feed-container vertical-feed">
                 <canvas id="canvas-vertical"></canvas>
-                <span class="feed-label">Vertical</span>
+                <span class="feed-label">Vertical (Proporcional)</span>
             </div>
 
-            <!-- Vista 2: Marco Horizontal (Simultáneo abajo) -->
             <div class="feed-container horizontal-feed">
                 <canvas id="canvas-horizontal"></canvas>
-                <span class="feed-label">Horizontal</span>
+                <span class="feed-label">Horizontal (Proporcional)</span>
             </div>
         </main>
 
@@ -50,7 +47,7 @@
             </div>
 
             <div class="mode-selector">
-                <span class="active-mode">FOTO</span>
+                <button id="btn-mode-toggle" class="mode-btn">FOTO</button>
             </div>
         </footer>
 
