@@ -14,12 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentFacingMode = 'environment';
     let currentStream = null;
-    let currentMode = 'FOTO'; // 'FOTO' o 'VIDEO'
+    let currentMode = 'FOTO';
     let mediaRecorder = null;
     let recordedChunks = [];
     let isRecordingVideo = false;
 
-    // Perfiles de Calidad basados en especificaciones del iPhone 15 Pro Max
     const videoQualities = [
         { label: '4K / 30FPS', width: 3840, height: 2160, frameRate: 30 },
         { label: '4K / 60FPS', width: 3840, height: 2160, frameRate: 60 },
@@ -51,9 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 videoSource.play();
                 requestAnimationFrame(renderSimultaneousFeeds);
             };
-            console.log(`[Camera] Configurada: ${qualityConfig.label} | Facing: ${facingMode}`);
         } catch (error) {
-            console.warn('[Camera] Ajuste estricto falló, intentando formato estándar...', error);
             try {
                 currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 videoSource.srcObject = currentStream;
@@ -65,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Renderizado con proporciones matemáticas perfectas (Crop Center sin deformación)
     function drawPerfectProportions(video, ctx, canvas, targetAspect) {
         const vW = video.videoWidth;
         const vH = video.videoHeight;
@@ -98,19 +94,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (videoSource.paused || videoSource.ended) return;
 
         canvasVertical.width = 1080;
-        canvasVertical.height = 1920; // 9:16
+        canvasVertical.height = 1920; // 9:16 exacto
 
         canvasHorizontal.width = 1920;
-        canvasHorizontal.height = 1080; // 16:9
+        canvasHorizontal.height = 1080; // 16:9 exacto
 
-        // Dibujar con proporciones exactas simultáneamente
         drawPerfectProportions(videoSource, ctxVertical, canvasVertical, 9 / 16);
         drawPerfectProportions(videoSource, ctxHorizontal, canvasHorizontal, 16 / 9);
 
         requestAnimationFrame(renderSimultaneousFeeds);
     }
 
-    // Cambiar Calidad al presionar el botón superior (Solo aplica en Modo Video o configuración general)
     btnQuality.addEventListener('click', () => {
         if (isRecordingVideo) return;
         currentQualityIndex = (currentQualityIndex + 1) % videoQualities.length;
@@ -119,7 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
         startCamera(currentFacingMode, activeQ);
     });
 
-    // Alternar Modo FOTO / VIDEO
     btnModeToggle.addEventListener('click', () => {
         if (isRecordingVideo) return;
 
@@ -136,41 +129,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Botón Switch Cámara
     btnSwitch.addEventListener('click', () => {
         if (isRecordingVideo) return;
         currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
         startCamera(currentFacingMode, videoQualities[currentQualityIndex]);
     });
 
-    // Botón Disparador
     btnShutter.addEventListener('click', () => {
         if (currentMode === 'FOTO') {
-            takePhotoAndSaveToNativeGallery();
+            takePhotoAndSendToPhoneGallery();
         } else {
             toggleVideoRecordingNative();
         }
     });
 
-    // --- GUARDADO NATIVO A LA GALERÍA DE FOTOS DEL IPHONE ---
-    function takePhotoAndSaveToNativeGallery() {
+    // --- CONEXIÓN DIRECTA CON LA GALERÍA DEL CELULAR (iOS / SAFARI) ---
+    function takePhotoAndSendToPhoneGallery() {
         triggerFlashEffect();
 
         const finalCanvas = document.createElement('canvas');
         finalCanvas.width = 1080;
-        finalCanvas.height = 3120; // Combinación vertical + horizontal limpia
+        finalCanvas.height = 3120;
         const finalCtx = finalCanvas.getContext('2d');
 
         finalCtx.fillStyle = '#000000';
         finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
-        // Posicionar proporciones simétricas
         finalCtx.drawImage(canvasVertical, 0, 0, 1080, 1920);
         finalCtx.drawImage(canvasHorizontal, 0, 1940, 1080, 1181);
 
-        finalCanvas.toBlob((blob) => {
+        finalCanvas.toBlob(async (blob) => {
+            const file = new File([blob], `DualCam_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            
+            // Si el iPhone soporta Web Share API (nativo de Safari), abre el menú del sistema para guardar en Fotos
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Foto DualCam',
+                        text: 'Captura dual guardada desde la app'
+                    });
+                    galleryPreview.innerHTML = '✅';
+                    setTimeout(() => { galleryPreview.innerHTML = '📥'; }, 2000);
+                    return;
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.log('Share cancelado o no disponible');
+                }
+            }
+
+            // Método de respaldo con enlace directo optimizado para iOS
             const url = URL.createObjectURL(blob);
-            triggerNativeDownload(url, `DualCam_${Date.now()}.jpg`);
+            triggerIOSDownload(url, `DualCam_${Date.now()}.jpg`);
             galleryPreview.innerHTML = '✅';
             setTimeout(() => { galleryPreview.innerHTML = '📥'; }, 2000);
         }, 'image/jpeg', 0.95);
@@ -198,11 +207,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            mediaRecorder.onstop = () => {
+            mediaRecorder.onstop = async () => {
                 const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/mp4' });
+                const file = new File([blob], `DualCam_Video_${Date.now()}.mp4`, { type: blob.type });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Video DualCam',
+                            text: 'Video dual grabado desde la app'
+                        });
+                        galleryPreview.innerHTML = '✅';
+                        setTimeout(() => { galleryPreview.innerHTML = '📥'; }, 2000);
+                        return;
+                    } catch (err) {
+                        if (err.name !== 'AbortError') console.log('Share de video cancelado');
+                    }
+                }
+
                 const videoUrl = URL.createObjectURL(blob);
-                
-                triggerNativeDownload(videoUrl, `DualCam_Video_${Date.now()}.mp4`);
+                triggerIOSDownload(videoUrl, `DualCam_Video_${Date.now()}.mp4`);
                 galleryPreview.innerHTML = '✅';
                 setTimeout(() => { galleryPreview.innerHTML = '📥'; }, 2000);
             };
@@ -243,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         drawStreamFrame();
 
-        const canvasStream = streamCanvas.captureStream(60); // 60 FPS fluidos
+        const canvasStream = streamCanvas.captureStream(60);
         const audioTracks = currentStream.getAudioTracks();
         if (audioTracks.length > 0) {
             canvasStream.addTrack(audioTracks[0]);
@@ -251,12 +276,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return canvasStream;
     }
 
-    // Disparador de descarga optimizado para el sistema nativo de iOS (Safari / PWA)
-    function triggerNativeDownload(fileUrl, filename) {
+    function triggerIOSDownload(fileUrl, filename) {
         const a = document.createElement('a');
         a.href = fileUrl;
         a.download = filename;
-        a.target = '_blank';
+        a.setAttribute('target', '_blank');
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
