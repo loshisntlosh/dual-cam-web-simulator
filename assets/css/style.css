@@ -35,13 +35,11 @@ body, html {
         border: 12px solid #1c1c1e;
         border-radius: 48px;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
-        margin-top: 15px;
-        margin-bottom: 15px;
+        margin: 15px auto;
         height: calc(100vh - 30px);
     }
 }
 
-/* Header Estilo iOS Pro Camera */
 .app-header {
     height: 60px;
     display: flex;
@@ -64,10 +62,8 @@ body, html {
     border-radius: 20px;
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.5px;
     cursor: pointer;
     backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
 }
 
 .icon-btn-gear {
@@ -83,7 +79,6 @@ body, html {
     justify-content: center;
     align-items: center;
     backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
 }
 
 .indicator {
@@ -94,7 +89,6 @@ body, html {
     background: rgba(0, 0, 0, 0.4);
     padding: 4px 10px;
     border-radius: 12px;
-    backdrop-filter: blur(10px);
 }
 
 .indicator.recording {
@@ -115,18 +109,20 @@ body, html {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     padding: 60px 10px 120px 10px;
     background-color: #000000;
     overflow: hidden;
 }
 
+/* CORRECCIÓN CRÍTICA: El video fuente debe tener dimensiones válidas y opacidad baja pero renderizable para evitar pantalla en negro */
 #camera-source {
     position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0.001;
-    pointer-events: none;
+    width: 2px;
+    height: 2px;
+    opacity: 0.01;
+    z-index: -1;
+    object-fit: cover;
 }
 
 .feed-container {
@@ -142,8 +138,8 @@ body, html {
 }
 
 .vertical-feed {
-    width: 120px;
-    height: 213px;
+    width: 130px;
+    height: 231px;
 }
 
 .vertical-feed canvas {
@@ -153,8 +149,8 @@ body, html {
 }
 
 .horizontal-feed {
-    width: 320px;
-    height: 180px;
+    width: 340px;
+    height: 191px;
 }
 
 .horizontal-feed canvas {
@@ -176,7 +172,6 @@ body, html {
     font-weight: 500;
 }
 
-/* Cuadrícula Regla de Tercios */
 .grid-overlay {
     position: absolute;
     top: 0;
@@ -205,7 +200,6 @@ body, html {
     border-bottom: 0.5px solid rgba(255, 255, 255, 0.3);
 }
 
-/* Footer / Controles inferiores */
 .app-footer {
     height: 120px;
     display: flex;
@@ -230,7 +224,6 @@ body, html {
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    overflow: hidden;
     font-size: 18px;
 }
 
@@ -245,7 +238,6 @@ body, html {
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: transform 0.1s ease;
 }
 
 .shutter-btn::after {
@@ -265,10 +257,6 @@ body, html {
     height: 38px;
 }
 
-.shutter-btn:active {
-    transform: scale(0.92);
-}
-
 .mode-selector {
     width: 60px;
     text-align: center;
@@ -282,10 +270,8 @@ body, html {
     font-weight: 600;
     cursor: pointer;
     padding: 6px;
-    letter-spacing: 0.3px;
 }
 
-/* Modal de Ajustes Estilo iOS */
 .settings-modal {
     position: absolute;
     top: 0;
@@ -294,12 +280,11 @@ body, html {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
     z-index: 1000;
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s ease;
 }
 
 .settings-modal.hidden {
@@ -342,7 +327,6 @@ body, html {
     height: 28px;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 12px;
 }
 
 .settings-section {
@@ -353,7 +337,6 @@ body, html {
     font-size: 11px;
     font-weight: 600;
     color: #8e8e93;
-    letter-spacing: 0.5px;
     margin-bottom: 8px;
     display: block;
 }
@@ -369,7 +352,6 @@ body, html {
     font-size: 14px;
 }
 
-/* Interruptor Toggle Estilo iOS (Switch) */
 .switch {
     position: relative;
     display: inline-block;
@@ -377,18 +359,14 @@ body, html {
     height: 31px;
 }
 
-.switch input { 
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
+.switch input { opacity: 0; width: 0; height: 0; }
 
 .slider {
     position: absolute;
     cursor: pointer;
     top: 0; left: 0; right: 0; bottom: 0;
     background-color: #39393d;
-    transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: .3s;
     border-radius: 31px;
 }
 
@@ -400,15 +378,9 @@ body, html {
     left: 2px;
     bottom: 2px;
     background-color: white;
-    transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: .3s;
     border-radius: 50%;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
 }
 
-input:checked + .slider {
-    background-color: #34c759;
-}
-
-input:checked + .slider:before {
-    transform: translateX(20px);
-}
+input:checked + .slider { background-color: #34c759; }
+input:checked + .slider:before { transform: translateX(20px); }
